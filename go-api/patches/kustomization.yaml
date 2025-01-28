@@ -1,10 +1,10 @@
-bases:
-- ../backend
+resources:
+  - ../../base 
 
 commonAnnotations:
   cfa-base-name: go-api
 
 patches:
-- target:
-    kind: Deployment
-  path: patches/deploy.yaml
+  - target:
+      kind: Deployment
+    path: patches/deploy.yaml
