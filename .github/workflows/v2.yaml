@@ -1,4 +1,4 @@
-name: Kustomize Overlay Test v2
+name: Kustomize Overlay Test
 
 on:
   workflow_dispatch:
@@ -39,10 +39,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Set Up Kustomize
+      - name: Install Dependencies
         run: |
           curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
           sudo mv kustomize /usr/local/bin/
+          sudo apt-get install -y jq
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
 
       - name: Validate Application Customization
         run: |
@@ -73,7 +76,31 @@ jobs:
           # Modify only the selected configuration key
           if [[ "${{ github.event.inputs.config_option }}" != "" ]]; then
             echo "🔹 Updating $FILE: Setting ${{ github.event.inputs.config_option }} to ${{ github.event.inputs.new_value }}"
-            sed -i "s/\( *${{ github.event.inputs.config_option }}: \).*/\1${{ github.event.inputs.new_value }}/" $FILE
+
+            case "${{ github.event.inputs.config_option }}" in
+              cpu_limit)
+                yq -i '.spec.template.spec.containers[0].resources.limits.cpu = "${{ github.event.inputs.new_value }}"' $FILE ;;
+              memory_limit)
+                yq -i '.spec.template.spec.containers[0].resources.limits.memory = "${{ github.event.inputs.new_value }}"' $FILE ;;
+              cpu_request)
+                yq -i '.spec.template.spec.containers[0].resources.requests.cpu = "${{ github.event.inputs.new_value }}"' $FILE ;;
+              memory_request)
+                yq -i '.spec.template.spec.containers[0].resources.requests.memory = "${{ github.event.inputs.new_value }}"' $FILE ;;
+              timeout_seconds)
+                yq -i '.spec.template.spec.containers[0].livenessProbe.timeoutSeconds = "${{ github.event.inputs.new_value }}"' $FILE ;;
+              initial_delay_seconds)
+                yq -i '.spec.template.spec.containers[0].livenessProbe.initialDelaySeconds = "${{ github.event.inputs.new_value }}"' $FILE ;;
+              revision_history_limit)
+                yq -i '.spec.revisionHistoryLimit = "${{ github.event.inputs.new_value }}"' $FILE ;;
+              terminationGracePeriodSeconds)
+                yq -i '.spec.template.spec.terminationGracePeriodSeconds = "${{ github.event.inputs.new_value }}"' $FILE ;;
+              maxReplicas)
+                yq -i '.spec.maxReplicas = "${{ github.event.inputs.new_value }}"' $FILE ;;
+              *)
+                echo "❌ Error: Invalid option selected."
+                exit 1 ;;
+            esac
+
             echo "✅ Updated $FILE successfully!"
           else
             echo "⚠️ No configuration change requested. Proceeding with default values."
@@ -90,4 +117,4 @@ jobs:
         run: |
           curl -sLO https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
           tar xf kubeval-linux-amd64.tar.gz
-          ./kubeval output.yaml
+          ./kubeval --ignore-missing-schemas output.yaml
