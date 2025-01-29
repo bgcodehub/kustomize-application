@@ -2,7 +2,7 @@ resources:
   - ../../base
 
 commonLabels:
-  tier: backend
+  tier: frontend
 
 commonAnnotations:
-  cfa-base-name: backend
+  cfa-base-name: frontend
