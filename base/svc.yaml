@@ -2,10 +2,14 @@ apiVersion: v1
 kind: Service
 metadata:
   name: service
+  labels:
+    owner: cfa
 spec:
   ports:
   - name: app-port
     port: 80
     protocol: TCP
     targetPort: app-port
+  selector:
+    owner: cfa
   type: NodePort

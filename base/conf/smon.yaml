@@ -1,4 +1,11 @@
-commonlabels:
-- path: spec/selector/matchLabels
-  create: true
-  kind: ServiceMonitor
+apiVersion: builtin
+kind: LabelTransformer
+metadata:
+  name: service-monitor-labels
+labels:
+  app.kubernetes.io/managed-by: kustomize
+  monitoring: enabled
+fieldSpecs:
+  - path: spec/selector/matchLabels
+    create: true
+    kind: ServiceMonitor

@@ -1,9 +1,11 @@
-apiVersion: policy/v1beta1
+apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: pdb
+  labels:
+    owner: cfa
 spec:
   maxUnavailable: 1
   selector:
     matchLabels:
-      app: application
+      owner: cfa

@@ -2,18 +2,22 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
+    owner: cfa
     tier: application
   name: deployment
 spec:
   revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      owner: cfa
   strategy:
     type: RollingUpdate
     rollingUpdate:
       maxUnavailable: 0
   template:
     metadata:
-      annotations:
-        prometheus.io/scrape: "true"
+      labels:
+        owner: cfa
     spec:
       terminationGracePeriodSeconds: 30
       serviceAccountName: sa
@@ -40,11 +44,11 @@ spec:
           name: app-port
         resources:
           limits:
-            cpu: 2000m
-            memory: 2048Mi
+            cpu: "2000m"
+            memory: "2048Mi"
           requests:
-            cpu: 1000m
-            memory: 1024Mi
+            cpu: "1000m"
+            memory: "1024Mi"
         env:
         - name: AWS_REGION
           valueFrom:

@@ -1,8 +1,0 @@
-bases:
-- ../base
-
-commonLabels:
-  tier: frontend
-
-commonAnnotations:
-  cfa-base-name: frontend

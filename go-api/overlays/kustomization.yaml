@@ -1,0 +1,13 @@
+resources:
+  - ../../base  # Pulling in the shared base configuration
+
+patches:
+  - patches/deploy.yaml   # Applying customizations for go-api
+  - patches/hpa.yaml      # Applying HPA patch if needed
+
+commonLabels:
+  app: go-api
+  owner: cfa
+
+commonAnnotations:
+  cfa-base-name: go-api
