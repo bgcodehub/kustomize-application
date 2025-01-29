@@ -1,4 +1,4 @@
-name: Kustomize Overlay Test v3
+name: Kustomize Overlay Test
 
 on:
   workflow_dispatch:
@@ -66,6 +66,11 @@ jobs:
 
             echo "  - $KEY: $VALUE"
 
+            # Ensure numeric values are handled properly
+            if [[ "$KEY" == "timeout_seconds" || "$KEY" == "initial_delay_seconds" || "$KEY" == "revision_history_limit" ]]; then
+              VALUE=$(echo "$VALUE" | jq 'tonumber')  # Convert string to number
+            fi
+
             case "$KEY" in
               cpu_limit)
                 yq -i '.spec.template.spec.containers[0].resources.limits.cpu = "'"$VALUE"'"' $FILE ;;
@@ -76,15 +81,15 @@ jobs:
               memory_request)
                 yq -i '.spec.template.spec.containers[0].resources.requests.memory = "'"$VALUE"'"' $FILE ;;
               timeout_seconds)
-                yq -i '.spec.template.spec.containers[0].livenessProbe.timeoutSeconds = "'"$VALUE"'"' $FILE ;;
+                yq -i '.spec.template.spec.containers[0].livenessProbe.timeoutSeconds = '$VALUE'' $FILE ;;
               initial_delay_seconds)
-                yq -i '.spec.template.spec.containers[0].livenessProbe.initialDelaySeconds = "'"$VALUE"'"' $FILE ;;
+                yq -i '.spec.template.spec.containers[0].livenessProbe.initialDelaySeconds = '$VALUE'' $FILE ;;
               revision_history_limit)
-                yq -i '.spec.revisionHistoryLimit = "'"$VALUE"'"' $FILE ;;
+                yq -i '.spec.revisionHistoryLimit = '$VALUE'' $FILE ;;
               terminationGracePeriodSeconds)
-                yq -i '.spec.template.spec.terminationGracePeriodSeconds = "'"$VALUE"'"' $FILE ;;
+                yq -i '.spec.template.spec.terminationGracePeriodSeconds = '$VALUE'' $FILE ;;
               maxReplicas)
-                yq -i '.spec.maxReplicas = "'"$VALUE"'"' "java-api/overlays/patches/hpa.yaml" ;;
+                yq -i '.spec.maxReplicas = '$VALUE'' "java-api/overlays/patches/hpa.yaml" ;;
               *)
                 echo "❌ Error: Invalid key '$KEY'. Skipping."
                 continue ;;
