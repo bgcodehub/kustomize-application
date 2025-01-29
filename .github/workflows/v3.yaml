@@ -1,0 +1,107 @@
+name: Kustomize Overlay Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      application:
+        description: "Select application type"
+        required: true
+        type: choice
+        options:
+          - go-api
+          - java-api
+          - python-api
+          - frontend
+          - backend
+      modifications:
+        description: "Enter runtime modifications as JSON (Only for go-api & java-api)"
+        required: false
+        default: "{}"
+
+jobs:
+  test-kustomize:
+    name: Test Kustomize Overlays
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Install Dependencies
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+          sudo apt-get install -y jq
+          sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Validate Application Customization
+        run: |
+          if [[ "${{ github.event.inputs.application }}" != "go-api" && "${{ github.event.inputs.application }}" != "java-api" && "${{ github.event.inputs.modifications }}" != "{}" ]]; then
+            echo "❌ Error: Runtime customization is only allowed for go-api and java-api"
+            exit 1
+          fi
+
+      - name: Modify Overlay at Runtime (Multiple Values)
+        if: ${{ github.event.inputs.application == 'go-api' || github.event.inputs.application == 'java-api' }}
+        run: |
+          FILE=""
+
+          # Determine which file to modify based on application type
+          if [[ "${{ github.event.inputs.application }}" == "go-api" ]]; then
+            FILE="go-api/overlays/patches/deploy.yaml"
+          elif [[ "${{ github.event.inputs.application }}" == "java-api" ]]; then
+            FILE="java-api/overlays/patches/deploy.yaml"
+          fi
+
+          if [[ -z "$FILE" ]]; then
+            echo "❌ Error: No valid file found to modify."
+            exit 1
+          fi
+
+          # Decode JSON and loop over key-value pairs
+          echo "🔹 Modifying $FILE with the following changes:"
+          echo '${{ github.event.inputs.modifications }}' | jq -r 'to_entries | .[] | "\(.key) = \(.value)"' | while read -r line; do
+            KEY=$(echo "$line" | cut -d'=' -f1 | xargs)
+            VALUE=$(echo "$line" | cut -d'=' -f2 | xargs)
+
+            echo "  - $KEY: $VALUE"
+
+            case "$KEY" in
+              cpu_limit)
+                yq -i '.spec.template.spec.containers[0].resources.limits.cpu = "'"$VALUE"'"' $FILE ;;
+              memory_limit)
+                yq -i '.spec.template.spec.containers[0].resources.limits.memory = "'"$VALUE"'"' $FILE ;;
+              cpu_request)
+                yq -i '.spec.template.spec.containers[0].resources.requests.cpu = "'"$VALUE"'"' $FILE ;;
+              memory_request)
+                yq -i '.spec.template.spec.containers[0].resources.requests.memory = "'"$VALUE"'"' $FILE ;;
+              timeout_seconds)
+                yq -i '.spec.template.spec.containers[0].livenessProbe.timeoutSeconds = "'"$VALUE"'"' $FILE ;;
+              initial_delay_seconds)
+                yq -i '.spec.template.spec.containers[0].livenessProbe.initialDelaySeconds = "'"$VALUE"'"' $FILE ;;
+              revision_history_limit)
+                yq -i '.spec.revisionHistoryLimit = "'"$VALUE"'"' $FILE ;;
+              terminationGracePeriodSeconds)
+                yq -i '.spec.template.spec.terminationGracePeriodSeconds = "'"$VALUE"'"' $FILE ;;
+              maxReplicas)
+                yq -i '.spec.maxReplicas = "'"$VALUE"'"' "java-api/overlays/patches/hpa.yaml" ;;
+              *)
+                echo "❌ Error: Invalid key '$KEY'. Skipping."
+                continue ;;
+            esac
+          done
+
+          echo "✅ Updates completed successfully!"
+
+      - name: Run Kustomize Build for ${{ github.event.inputs.application }}
+        run: |
+          kustomize build ${{ github.event.inputs.application }}/overlays/ > output.yaml
+
+      - name: Show Output Manifests
+        run: cat output.yaml
+
+      - name: Validate Kubernetes Manifests
+        run: |
+          curl -sLO https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
+          tar xf kubeval-linux-amd64.tar.gz
+          ./kubeval --ignore-missing-schemas output.yaml
