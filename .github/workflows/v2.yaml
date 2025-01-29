@@ -1,0 +1,93 @@
+name: Kustomize Overlay Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      application:
+        description: "Select application type"
+        required: true
+        type: choice
+        options:
+          - go-api
+          - java-api
+          - python-api
+          - frontend
+          - backend
+      config_option:
+        description: "Select configuration to modify (Only for go-api & java-api)"
+        required: false
+        type: choice
+        options:
+          - cpu_limit
+          - memory_limit
+          - cpu_request
+          - memory_request
+          - timeout_seconds
+          - initial_delay_seconds
+          - revision_history_limit
+          - terminationGracePeriodSeconds
+          - maxReplicas
+      new_value:
+        description: "Enter the new value for the selected configuration"
+        required: false
+
+jobs:
+  test-kustomize:
+    name: Test Kustomize Overlays
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up Kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
+      - name: Validate Application Customization
+        run: |
+          if [[ "${{ github.event.inputs.application }}" != "go-api" && "${{ github.event.inputs.application }}" != "java-api" && -n "${{ github.event.inputs.config_option }}" ]]; then
+            echo "❌ Error: Runtime customization is only allowed for go-api and java-api"
+            exit 1
+          fi
+
+      - name: Modify Overlay at Runtime
+        if: ${{ github.event.inputs.application == 'go-api' || github.event.inputs.application == 'java-api' }}
+        run: |
+          FILE=""
+
+          # Determine which file to modify based on application type
+          if [[ "${{ github.event.inputs.application }}" == "go-api" ]]; then
+            FILE="go-api/overlays/patches/deploy.yaml"
+          elif [[ "${{ github.event.inputs.application }}" == "java-api" && "${{ github.event.inputs.config_option }}" == "maxReplicas" ]]; then
+            FILE="java-api/overlays/patches/hpa.yaml"
+          elif [[ "${{ github.event.inputs.application }}" == "java-api" ]]; then
+            FILE="java-api/overlays/patches/deploy.yaml"
+          fi
+
+          if [[ -z "$FILE" ]]; then
+            echo "❌ Error: No valid file found to modify."
+            exit 1
+          fi
+
+          # Modify only the selected configuration key
+          if [[ "${{ github.event.inputs.config_option }}" != "" ]]; then
+            echo "🔹 Updating $FILE: Setting ${{ github.event.inputs.config_option }} to ${{ github.event.inputs.new_value }}"
+            sed -i "s/\( *${{ github.event.inputs.config_option }}: \).*/\1${{ github.event.inputs.new_value }}/" $FILE
+            echo "✅ Updated $FILE successfully!"
+          else
+            echo "⚠️ No configuration change requested. Proceeding with default values."
+          fi
+
+      - name: Run Kustomize Build for ${{ github.event.inputs.application }}
+        run: |
+          kustomize build ${{ github.event.inputs.application }}/overlays/ > output.yaml
+
+      - name: Show Output Manifests
+        run: cat output.yaml
+
+      - name: Validate Kubernetes Manifests
+        run: |
+          curl -sLO https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
+          tar xf kubeval-linux-amd64.tar.gz
+          ./kubeval output.yaml
