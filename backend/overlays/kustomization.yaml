@@ -2,8 +2,7 @@ resources:
   - ../../base
 
 commonLabels:
-  app: python-api
-  owner: cfa
+  tier: frontend
 
 commonAnnotations:
-  cfa-base-name: python-api
+  cfa-base-name: frontend

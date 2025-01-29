@@ -1,0 +1,17 @@
+resources:
+  - ../../base
+
+patches:
+  - path: patches/deploy.yaml
+    target:
+      kind: Deployment
+  - path: patches/hpa.yaml
+    target:
+      kind: HorizontalPodAutoscaler
+
+commonLabels:
+  app: java-api
+  owner: cfa
+
+commonAnnotations:
+  cfa-base-name: java-api

@@ -3,15 +3,12 @@ kind: ServiceMonitor
 metadata:
   name: servicemonitor
   labels:
-    owner: cfa
     prometheus-enabled: "true"
     release: prometheus-operator
 spec:
-  selector:
-    matchLabels:
-      owner: cfa
   namespaceSelector:
-    any: true
+    matchNames:
+    - $(SVC_NAMESPACE)
   endpoints:
   - port: app-port
     interval: 30s
