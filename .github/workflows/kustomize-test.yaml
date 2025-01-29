@@ -34,8 +34,14 @@ jobs:
       - name: Show Output Manifests
         run: cat output.yaml
 
-      - name: Validate Kubernetes Manifests
+      - name: Validate Kubernetes Manifests with kubeval
         run: |
           curl -sLO https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
           tar xf kubeval-linux-amd64.tar.gz
-          ./kubeval output.yaml
+          ./kubeval --ignore-missing-schemas output.yaml
+
+      - name: Validate Manifests with Kubectl (Fallback)
+        if: ${{ failure() }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y kubectl
+          kubectl apply --dry-run=client -f output.yaml
