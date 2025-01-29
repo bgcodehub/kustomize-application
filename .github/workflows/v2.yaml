@@ -1,4 +1,4 @@
-name: Kustomize Overlay Test
+name: Kustomize Overlay Test v2
 
 on:
   workflow_dispatch:
