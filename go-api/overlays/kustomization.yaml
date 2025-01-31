@@ -1,3 +1,5 @@
+namespace: ${NAMESPACE}
+
 resources:
   - ../../base  # Pulling in the shared base configuration
 
