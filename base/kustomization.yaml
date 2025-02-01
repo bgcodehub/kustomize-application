@@ -34,7 +34,7 @@
 # - conf/smon.yaml
 # - conf/transformers.yaml
 
-namespace: default
+# namespace: default
 
 commonLabels:
   owner: cfa
