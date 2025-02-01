@@ -3,17 +3,20 @@ kind: PatchTransformer
 metadata:
   name: startup-probe
 patch: |-
-  spec:
-    template:
-      spec:
-        containers:
-          - name: $patch: merge
-            startupProbe:
-              failureThreshold: 36
-              httpGet:
-                path: /healthz
-                port: 8080
-              initialDelaySeconds: 10
-              periodSeconds: 5
+  [
+    {
+      "op": "add",
+      "path": "/spec/template/spec/containers/0/startupProbe",
+      "value": {
+        "failureThreshold": 36,
+        "httpGet": {
+          "path": "/healthz",
+          "port": 8080
+        },
+        "initialDelaySeconds": 10,
+        "periodSeconds": 5
+      }
+    }
+  ]
 target:
   kind: Deployment

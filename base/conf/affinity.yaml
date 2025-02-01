@@ -3,17 +3,28 @@ kind: PatchTransformer
 metadata:
   name: affinity
 patch: |-
-  spec:
-    template:
-      spec:
-        affinity:
-          podAntiAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-              - podAffinityTerm:
-                  labelSelector:
-                    matchLabels:
-                      tier: application
-                  topologyKey: kubernetes.io/hostname
-                weight: 100
+  [
+    {
+      "op": "add",
+      "path": "/spec/template/spec/affinity",
+      "value": {
+        "podAntiAffinity": {
+          "preferredDuringSchedulingIgnoredDuringExecution": [
+            {
+              "podAffinityTerm": {
+                "labelSelector": {
+                  "matchLabels": {
+                    "tier": "application"
+                  }
+                },
+                "topologyKey": "kubernetes.io/hostname"
+              },
+              "weight": 100
+            }
+          ]
+        }
+      }
+    }
+  ]
 target:
   kind: Deployment
