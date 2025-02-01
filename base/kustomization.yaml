@@ -33,3 +33,6 @@ vars:
 configurations:
 - conf/smon.yaml
 - conf/transformers.yaml
+
+transformers:
+  - conf/security-context-patch.yaml  

@@ -11,3 +11,6 @@ varReference:
 namePrefix:
 - path: spec/template/spec/containers/name
 - path: spec/jobTemplate/spec/template/spec/containers/name
+
+transformers:
+  - security-context-patch.yaml
