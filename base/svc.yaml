@@ -2,11 +2,14 @@ apiVersion: v1
 kind: Service
 metadata:
   name: service
-  namespace: default # Addition
+  namespace: default
 spec:
   ports:
   - name: app-port
     port: 80
     protocol: TCP
     targetPort: app-port
-  type: NodePort
+  selector:
+    app: go-api
+    owner: cfa
+  type: ClusterIP
