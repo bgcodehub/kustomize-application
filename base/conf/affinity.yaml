@@ -1,0 +1,19 @@
+apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: affinity
+patch: |-
+  spec:
+    template:
+      spec:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - podAffinityTerm:
+                  labelSelector:
+                    matchLabels:
+                      tier: application
+                  topologyKey: kubernetes.io/hostname
+                weight: 100
+target:
+  kind: Deployment
