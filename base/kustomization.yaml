@@ -36,7 +36,7 @@
 
 namespace: default
 
-labels:
+commonLabels:
   owner: cfa
 
 commonAnnotations:
@@ -50,30 +50,25 @@ resources:
   - smon.yaml
   - svc.yaml
 
-replacements:
-  - source:
+vars:
+  - name: SVC_NAME
+    objref:
       kind: Service
       name: service
-      fieldPath: metadata.name
-    targets:
-      - select:
-          kind: Deployment
-        fieldPaths:
-          - spec.template.spec.containers[].env[].value
-  - source:
+      apiVersion: v1
+    fieldref:
+      fieldpath: metadata.name
+  - name: SVC_NAMESPACE
+    objref:
       kind: Service
       name: service
-      fieldPath: metadata.namespace
-    targets:
-      - select:
-          kind: Deployment
-        fieldPaths:
-          - spec.namespaceSelector.matchNames[]
+      apiVersion: v1
+    fieldref:
+      fieldpath: metadata.namespace
 
 configurations:
   - conf/smon.yaml
   - conf/transformers.yaml
 
-generators:
+transformers:
   - conf/sc.yaml
- 
