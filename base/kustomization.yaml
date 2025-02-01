@@ -1,38 +1,79 @@
+# namespace: default
+
+# commonLabels:
+#   owner: cfa
+
+# commonAnnotations:
+#   cfa-base-version: v0.1.0
+
+# resources:
+# - deploy.yaml
+# - hpa.yaml
+# - pdb.yaml
+# - sa.yaml
+# - smon.yaml
+# - svc.yaml
+
+# vars:
+# - name: SVC_NAME
+#   objref:
+#     kind: Service
+#     name: service
+#     apiVersion: v1
+#   fieldref:
+#     fieldpath: metadata.name
+# - name: SVC_NAMESPACE
+#   objref:
+#     kind: Service
+#     name: service
+#     apiVersion: v1
+#   fieldref:
+#     fieldpath: metadata.namespace
+
+# configurations:
+# - conf/smon.yaml
+# - conf/transformers.yaml
+
 namespace: default
 
-commonLabels:
+labels:
   owner: cfa
 
 commonAnnotations:
   cfa-base-version: v0.1.0
 
 resources:
-- deploy.yaml
-- hpa.yaml
-- pdb.yaml
-- sa.yaml
-- smon.yaml
-- svc.yaml
+  - deploy.yaml
+  - hpa.yaml
+  - pdb.yaml
+  - sa.yaml
+  - smon.yaml
+  - svc.yaml
 
-vars:
-- name: SVC_NAME
-  objref:
-    kind: Service
-    name: service
-    apiVersion: v1
-  fieldref:
-    fieldpath: metadata.name
-- name: SVC_NAMESPACE
-  objref:
-    kind: Service
-    name: service
-    apiVersion: v1
-  fieldref:
-    fieldpath: metadata.namespace
+replacements:
+  - source:
+      kind: Service
+      name: service
+      fieldPath: metadata.name
+    targets:
+      - select:
+          kind: Deployment
+        fieldPaths:
+          - spec.template.spec.containers[].env[].value
+  - source:
+      kind: Service
+      name: service
+      fieldPath: metadata.namespace
+    targets:
+      - select:
+          kind: Deployment
+        fieldPaths:
+          - spec.namespaceSelector.matchNames[]
 
 configurations:
-- conf/smon.yaml
-- conf/transformers.yaml
+  - conf/smon.yaml
+  - conf/transformers.yaml
 
-transformers:
-  - conf/security-context-patch.yaml  
+generators:
+  - conf/sc.yaml
+ 
